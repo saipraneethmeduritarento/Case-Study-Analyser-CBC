@@ -63,6 +63,22 @@ Non-negotiable writing rules:
   uncertain, omit it or mark it explicitly as uncertain.
 - Every direct quote must be verbatim from the source material and attributed
   to a named speaker.
+- Use the active voice: name the actor first ("The district administration
+  scanned the folios", not "The folios were scanned"). Keep sentences under
+  30 words.
+- Use -ise / -isation / -yse spellings throughout, including unauthorised,
+  standardised, decentralised, digitised, prioritised.
+- Describe past conditions in the past tense. Do not use "may" or "can" for
+  facts about the past ("the registers were written in Persian", not "may be").
+- Cite as you write: add a Harvard author-date citation, e.g. (Chaturvedi,
+  2026), after every statistic, date, named record, quote or attributed view.
+  Take the author and date from the SOURCE block the fact came from. Never
+  cite anything that is not in the source material.
+- Every sentence must be grammatically complete. Never leave an editorial
+  note, instruction, placeholder or comment to the author in the text.
+- Formatting: use "### " for sub-headings only (never "####"), write quotes
+  inline in double quotation marks (never as "> " block quotes), and do not
+  use bold or italic markdown.
 """
 
 CASE_TYPES = {
@@ -129,6 +145,11 @@ CASE_TYPES = {
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
+# Harvard in-text citations such as "(Chaturvedi, 2026)" or
+# "(Times of India, 2025, p. 3)", excluded from the compliance word count.
+_CITATION_RE = re.compile(r"\([A-Z][^()]{0,80}?,\s*(?:\d{4}[a-z]?|n\.d\.)[^()]{0,15}\)")
+
 
 def _truncate(text, limit):
     if not text:
@@ -500,6 +521,10 @@ Requirements:
 - Give enough context for an unfamiliar reader to understand what is at stake.
 - Past tense, British English. 150-250 words.
 - End with a sentence that signals the transition to the broader narrative.
+- Keep the Hook in the period before the initiative began. Do not report what
+  the protagonist later said about the project, its next steps or its technology.
+- Any quote in the Hook must be a complete, verbatim sentence with the
+  speaker's role. If no complete sentence is available, do not quote.
 
 Must NOT:
 - Begin with a rhetorical question or a bare statistic.
@@ -670,6 +695,11 @@ Requirements:
 - Include at least three direct quotes from named sources.
 - Flag specialist terms for footnotes using [FOOTNOTE NEEDED: term].
 - British English, past tense.
+- End the section with a "### Outcomes and Impact" sub-section. Give each
+  measurable result with its baseline and later value (e.g. retrieval time,
+  records digitised, coverage), each with a citation. State which intended
+  results were not achieved. If the sources give no figure, say it was not
+  measured.
 
 Confirmed chronology to use as the backbone:
 {chronology_text}
@@ -958,6 +988,8 @@ Requirements:
 - Factual and neutral; do not evaluate whether the decision was correct.
 - No more than 300 words.
 - Note any outcomes that were not anticipated at the time of the decision.
+- Give each measurable result with its baseline and later value, each with a
+  citation. If the sources give no figure, say it was not measured.
 - British English, past tense.
 """,
     ),
@@ -1164,9 +1196,11 @@ The caselet must NOT exceed 2,000 words, excluding footnotes and references.
 Follow this exact structure with these sub-headings:
 
 ## Context (150-250 words)
-Introduce the setting, the institution and the protagonist. State what they
-were responsible for and what the general situation was. Do not provide a
-detailed history.
+Open with two or three sentences that show a concrete moment or tension from
+the period before the initiative (a person, a place, a problem), attributed to
+a source. Do not reveal the outcome. Then introduce the setting, the
+institution and the protagonist. State what they were responsible for and
+what the general situation was. Do not provide a detailed history.
 
 ## The Situation (400-700 words)
 Describe the specific challenge, decision point or practice that is the focus
@@ -1175,7 +1209,8 @@ Include one direct quote from a named source if available. Flag any specialist
 terms for footnotes using [FOOTNOTE NEEDED: term].
 
 ## The Response or Outcome (250-400 words)
-Describe what was decided or done, and what resulted. If this caselet is being
+Describe what was decided or done, and what resulted. Give each measurable
+result with its baseline and later value, each with a citation. If this caselet is being
 left open as a decision-forcing exercise, stop before the outcome and state
 clearly: "At this point, [name] had to decide [state the decision]."
 
@@ -1258,6 +1293,12 @@ PROMPT GROUP 4 — Language and style
 - 4.5 Neutrality: flag hero narrative, promotional language, political
   sensitivity, implicit criticism without attributed source, and blame
   attribution without an attributed source.
+- 4.6 Draft artefacts: flag any editorial note, instruction to the author,
+  placeholder or comment left in the text (e.g. "Paraphrase as...",
+  "Clarify...", "Correct to state..."), and any sentence missing a subject
+  or verb.
+- 4.7 Citations: flag any statistic, date, named record or quote without an
+  (Author, Year) citation.
 
 PROMPT GROUP 7 — Structure
 - 7.1 Section sequence and presence (against the canonical {case_label}
@@ -1279,7 +1320,7 @@ Return JSON:
 {{
   "findings": [
     {{
-      "type": "British English | Tense | Adjective | Em-dash | Sentence length | Single-sentence paragraph | Repetition | Hero narrative | Promotional | Political | Implicit criticism | Blame | Section sequence | Coherence | Gendered language | Identity reference | Confidentiality | Formatting | Other",
+      "type": "British English | Tense | Adjective | Em-dash | Sentence length | Single-sentence paragraph | Repetition | Hero narrative | Promotional | Political | Implicit criticism | Blame | Section sequence | Coherence | Gendered language | Identity reference | Confidentiality | Formatting | Draft artefact | Citation | Other",
       "section": "section heading where the issue was found, or 'Whole document'",
       "original_text": "short verbatim excerpt (max 25 words)",
       "suggestion": "concrete suggested revision",
@@ -1292,8 +1333,13 @@ Return JSON:
 Be conservative. Only flag genuine issues. If the draft is clean for a check,
 do not invent findings for it.
 
+The app pastes "suggestion" over "original_text" word for word. It MUST be
+the finished replacement text: complete, grammatical and fitting the
+surrounding sentence. Never put advice or an instruction in "suggestion";
+put it in "explanation". To delete text, return the sentence without it.
+
 === DRAFT ===
-{full_text[:18000]}
+{full_text}
 """
 
     sensitivity_prompt = f"""PROMPT 6 / 8 — Claim, quote and sensitivity audit
@@ -1317,18 +1363,27 @@ Return JSON with the SAME shape as the style pass:
       "type": "Untraceable claim | Quote mismatch | Numerical mismatch | Pre-publication sensitivity",
       "section": "section heading or 'Whole document'",
       "original_text": "short verbatim excerpt (max 25 words)",
-      "suggestion": "what the author should do (cite source / verify / remove / generalise)",
+      "suggestion": "rewritten replacement text that carries out the action (cite source / verify / remove / generalise)",
       "severity": "High | Medium | Low",
       "explanation": "one sentence"
     }}
   ]
 }}
 
+"suggestion" is pasted over "original_text" word for word, so carry out the
+action (cite source / verify / remove / generalise) as rewritten text:
+- cite source: the same text with an (Author, Year) citation added;
+- generalise: the generalised wording;
+- remove: the sentence with the claim taken out;
+- verify: the original text unchanged, with the check described in "explanation".
+For a Quote mismatch, give the verbatim quote from the source, or a complete
+indirect-speech sentence that keeps its subject and verb.
+
 === SOURCE MATERIAL ===
 {sources_block}
 
 === DRAFT ===
-{full_text[:14000]}
+{full_text}
 """
 
     abbrev_prompt = f"""PROMPT 5 — Abbreviations, footnotes and references for
@@ -1347,6 +1402,8 @@ Run three checks:
 
 3. Reference list: based on the SOURCE MATERIAL provided, build a Harvard-
    style reference list of every source actually used in the draft.
+   Include every source cited in the draft's (Author, Year) citations and
+   only those, with matching author and year.
 
 Return JSON:
 {{
@@ -1365,10 +1422,12 @@ Return JSON:
 {sources_block}
 
 === DRAFT ===
-{full_text[:14000]}
+{full_text}
 """
 
-    word_count = len(re.findall(r"\b\w+\b", full_text))
+    # (Author, Year) citations are not counted, so the word target and the
+    # 2,000-word Caselet ceiling cover the narrative only.
+    word_count = len(re.findall(r"\b\w+\b", _CITATION_RE.sub("", full_text)))
 
     findings = []
     abbreviations = []
@@ -1493,6 +1552,19 @@ correspond to that competency:
 
 Intended audience from intake: {audience}
 
+Additional requirements:
+- Keep the Case Summary to about 250-300 words (within the 400-word limit).
+- Name at least one established theoretical framework that fits the case
+  (e.g. Moore's Strategic Triangle, Kotter's 8-Step Change Model, the
+  Technology Acceptance Model). Make one Learning Objective apply it by name.
+  Open "teaching_strategy" with a short "Theoretical framework" paragraph
+  that names it, explains it in two sentences and links it to specific case
+  events. Apply it again in at least one answer guide.
+- In "teaching_strategy", add a "Pre-reading" line listing one or two of the
+  Additional Teaching Resources.
+- In "additional_resources", include at least one similar case study as a
+  comparison case, alongside the supplementary readings.
+
 Suggested duration: {{
     "lesson_drawing": "60-90 minutes",
     "decision_forcing": "90-120 minutes",
@@ -1518,7 +1590,7 @@ British English. Past tense for descriptive material. Present tense allowed
 for instructional statements addressed to the instructor.
 
 === CONFIRMED CASE DRAFT ===
-{full_text[:14000]}
+{full_text}
 
 === SOURCE MATERIAL (for grounding only) ===
 {sources_block}
@@ -2088,7 +2160,7 @@ the narrative without changing the underlying facts.
 {_format_kcm_for_prompt()}
 
 === DRAFT ===
-{full_text[:18000]}
+{full_text}
 
 Return ONLY JSON:
 {{
