@@ -90,6 +90,7 @@ streamlit run app.py --server.port 5000
 | `GOOGLE_APPLICATION_CREDENTIALS` | Gemini | — | Path to the service-account JSON (read by `google-auth`) |
 | `GEMINI_API_KEY` / `GOOGLE_API_KEY` | Gemini | — | Gemini Developer API key; used when `GOOGLE_PROJECT_ID` is unset |
 | `GENAI_MODEL_NAME` | Gemini | `gemini-3.8-flash` | Gemini model id |
+| `GENAI_MODEL_NAME_ANALYSER` | Gemini | `GENAI_MODEL_NAME` | Gemini model id for the Case Study Analyser only (the judge), so it can differ from the generator model |
 | `GENAI_MAX_OUTPUT_TOKENS` | Gemini | `8192` | Output-token cap (higher than OpenAI's 2000 because Gemini counts thinking tokens against it) |
 | `GENAI_THINKING_LEVEL` | Gemini | `low` | `low`, `high`, or anything else to leave the model default |
 | `DATABASE_URL` | both | SQLite fallback | PostgreSQL connection string |

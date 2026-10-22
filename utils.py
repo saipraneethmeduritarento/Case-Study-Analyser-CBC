@@ -166,6 +166,18 @@ def is_api_error_message(value):
     return isinstance(value, str) and value.startswith(API_ERROR_PREFIXES)
 
 
+def analyser_model():
+    """Model id for Case Study Analyser calls.
+
+    In Gemini mode this is GENAI_MODEL_NAME_ANALYSER (falling back to
+    GENAI_MODEL_NAME), so the judge can differ from the generator model.
+    OpenAI mode keeps gpt-4o.
+    """
+    if gemini_client.use_gemini():
+        return gemini_client.get_analyser_model_name()
+    return "gpt-4o"
+
+
 def describe_ai_provider():
     """One-line description of the AI provider this process will actually use.
 
@@ -675,7 +687,7 @@ Rules:
 - Do NOT flag direct quotes from other sources
 - Be conservative — when in doubt, do NOT flag it"""
 
-        result = call_openai_api(prompt, response_format="json_object", temperature=0.1, seed=42)
+        result = call_openai_api(prompt, model=analyser_model(), response_format="json_object", temperature=0.1, seed=42)
         findings = []
         if isinstance(result, dict):
             chunk_findings = result.get("findings", [])

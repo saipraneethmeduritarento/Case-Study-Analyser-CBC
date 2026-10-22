@@ -71,6 +71,16 @@ def get_model_name(requested_model=None):
     return requested or configured
 
 
+def get_analyser_model_name():
+    """Resolve the Gemini model id used by the Case Study Analyser.
+
+    ``GENAI_MODEL_NAME_ANALYSER`` lets the analyser (the judge) run on a
+    different model from the generator; unset, it falls back to
+    ``GENAI_MODEL_NAME``.
+    """
+    return (os.getenv("GENAI_MODEL_NAME_ANALYSER") or "").strip() or get_model_name()
+
+
 def _max_output_tokens():
     raw = (os.getenv("GENAI_MAX_OUTPUT_TOKENS") or "").strip()
     if raw.isdigit() and int(raw) > 0:
@@ -137,8 +147,8 @@ def describe_provider():
     else:
         auth = "NO CREDENTIALS FOUND"
     level = (os.getenv("GENAI_THINKING_LEVEL") or DEFAULT_THINKING_LEVEL).strip().lower()
-    return "Gemini | model=%s | auth=%s | max_output_tokens=%d | thinking_level=%s" % (
-        get_model_name(), auth, _max_output_tokens(), level,
+    return "Gemini | model=%s | analyser_model=%s | auth=%s | max_output_tokens=%d | thinking_level=%s" % (
+        get_model_name(), get_analyser_model_name(), auth, _max_output_tokens(), level,
     )
 
 

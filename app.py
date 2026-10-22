@@ -17,7 +17,7 @@ from io import BytesIO
 import PyPDF2
 import docx
 from datetime import datetime, timedelta
-from utils import extract_text_from_pdf, extract_text_from_docx, call_openai_api, generate_report_pdf, get_download_link, create_gauge_chart, analyze_writing_quality_chunked, load_case_database, run_caseconnect_analysis, repair_broken_words
+from utils import extract_text_from_pdf, extract_text_from_docx, call_openai_api, analyser_model, generate_report_pdf, get_download_link, create_gauge_chart, analyze_writing_quality_chunked, load_case_database, run_caseconnect_analysis, repair_broken_words
 from assessment_criteria import ASSESSMENT_AREAS, ASSESSMENT_CRITERIA, calculate_weighted_score, get_score_color, get_grade_label, SECTOR_MAPPING, PROMPT_EXCLUSION_INSTRUCTIONS, KCM_COMPETENCIES
 from case_generator import (
     CASE_TYPES,
@@ -709,7 +709,7 @@ with st.sidebar:
                         {PROMPT_EXCLUSION_INSTRUCTIONS}
                         """
                         
-                        st.session_state.case_study_summary = call_openai_api(prompt)
+                        st.session_state.case_study_summary = call_openai_api(prompt, model=analyser_model())
                     
                     with st.spinner("Generating sector tags and keywords..."):
                         sector_prompt = f"""
@@ -739,7 +739,7 @@ with st.sidebar:
                         - Keywords should be simple, commonly used terms
                         """
                         
-                        tags_result = call_openai_api(sector_prompt, response_format="json_object", temperature=0.1, seed=42)
+                        tags_result = call_openai_api(sector_prompt, model=analyser_model(), response_format="json_object", temperature=0.1, seed=42)
                         if isinstance(tags_result, dict):
                             st.session_state.sector_tags = tags_result.get("sectors", [])
                             st.session_state.sector_subthemes = tags_result.get("subthemes", {})
@@ -867,7 +867,7 @@ with st.sidebar:
 
                     def _evaluate_criterion(area_id, criterion_id, criterion_info):
                         prompt = _build_criterion_prompt(area_id, criterion_info)
-                        result = call_openai_api(prompt, response_format="json_object", temperature=0.1, seed=42)
+                        result = call_openai_api(prompt, model=analyser_model(), response_format="json_object", temperature=0.1, seed=42)
                         return area_id, criterion_id, criterion_info, result
 
                     def _process_result(area_id, criterion_id, criterion_info, result):
@@ -1013,10 +1013,10 @@ with st.sidebar:
                             exclusion_instructions=PROMPT_EXCLUSION_INSTRUCTIONS
                         )
                         kcm_future = executor.submit(
-                            call_openai_api, kcm_prompt, "gpt-4o", "json_object", 0.1, 42
+                            call_openai_api, kcm_prompt, analyser_model(), "json_object", 0.1, 42
                         )
                         sector_future = executor.submit(
-                            call_openai_api, sector_prompt, "gpt-4o", "json_object", 0.1, 42
+                            call_openai_api, sector_prompt, analyser_model(), "json_object", 0.1, 42
                         )
 
                         try:
@@ -2584,7 +2584,7 @@ elif st.session_state.get("active_tool") == "analyser" and st.session_state.case
                         The recommendation should include enough detail to be actionable but be contained in a single complete paragraph.
                         """
                         
-                        st.session_state.recommendations = call_openai_api(prompt)
+                        st.session_state.recommendations = call_openai_api(prompt, model=analyser_model())
                     else:
                         st.session_state.recommendations = "The case study generally scores well across all assessment areas. Consider maintaining the current approach while reviewing any minor areas for potential enhancement."
             
